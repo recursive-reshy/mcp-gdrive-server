@@ -4,6 +4,11 @@ import { authenticate } from "@google-cloud/local-auth";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
+  getValidCredentials,
+  setupTokenRefresh,
+  loadCredentialsQuietly,
+} from "./auth.js";
+import {
   CallToolRequestSchema,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
@@ -13,6 +18,12 @@ import fs from "fs";
 import { google } from "googleapis";
 import path from "path";
 import { fileURLToPath } from 'url';
+
+/**
+ * TODOs:
+ * - Add refresh token logic
+ * 
+ */
 
 const drive = google.drive("v3");
 
@@ -28,6 +39,13 @@ const server = new Server(
     },
   },
 );
+
+// Returns a valid OAuth2 client or null
+async function ensureAuth() {
+  const auth = await getValidCredentials();
+  google.options({ auth });
+  return auth;
+}
 
 server.setRequestHandler(ListResourcesRequestSchema, async (request) => {
   const pageSize = 10;
@@ -208,6 +226,8 @@ async function authenticateAndSaveCredentials() {
 }
 
 async function loadCredentialsAndRunServer() {
+  console.log('Loading credentials...', credentialsPath)
+  
   if (!fs.existsSync(credentialsPath)) {
     console.error(
       "Credentials not found at:", credentialsPath,
@@ -225,14 +245,46 @@ async function loadCredentialsAndRunServer() {
     console.error("Credentials loaded. Starting server.");
     const transport = new StdioServerTransport();
     await server.connect(transport);
+    // TODO: Add log informing that server is running
   } catch (error) {
     console.error("Error starting server:", error);
     process.exit(1);
   }
 }
 
-if (process.argv[2] === "auth") {
+// if (process.argv[2] === "auth") {
+if (!fs.existsSync(".gdrive-server-credentials.json")) {
   authenticateAndSaveCredentials().catch(console.error);
 } else {
+  console.log('process.argv', process.argv)
   loadCredentialsAndRunServer().catch(console.error);
 }
+
+// async function startServer() {
+//   try {
+//     console.error("Starting server");
+    
+//     // Add this line to force authentication at startup
+//     await ensureAuth(); // This will trigger the auth flow if no valid credentials exist
+//     /**
+//      * The stdio transport enables communication through standard input and output streams. This is particularly useful for local integrations and command-line tools.
+//      * Use stdio when:
+//      * - Building command-line tools
+//      * - Implementing local integrations
+//      * - Needing simple process communication
+//      * - Working with shell scripts
+//      */
+//     const transport = new StdioServerTransport();
+//     // 
+//     await server.connect(transport);
+
+//     // Set up periodic token refresh that never prompts for auth
+//     setupTokenRefresh();
+//   } catch (error) {
+//     console.error("Error starting server:", error);
+//     process.exit(1);
+//   }
+// }
+
+// // Start server immediately
+// startServer().catch(console.error);

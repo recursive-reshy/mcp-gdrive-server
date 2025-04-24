@@ -13,11 +13,11 @@ const CREDS_DIR =
   process.env.GDRIVE_CREDS_DIR ||
   path.join(path.dirname(new URL(import.meta.url).pathname), "../../../");
 
-// console.log('CREDS_DIR', CREDS_DIR, process.env.GDRIVE_CREDS_DIR, path.join(path.dirname(new URL(import.meta.url).pathname), "../../../"))
-
 // Ensure the credentials directory exists
 function ensureCredsDirectory() {
   try {
+    // The recursive: true option ensures that parent directories are CREATED if 
+    // they do not exist, and avoids errors if the directory already exists.
     fs.mkdirSync(CREDS_DIR, { recursive: true });
     console.error(`Ensured credentials directory exists at: ${CREDS_DIR}`);
   } catch (error) {
@@ -29,8 +29,10 @@ function ensureCredsDirectory() {
   }
 }
 
+// Path to client's access token
 const credentialsPath = path.join(CREDS_DIR, ".gdrive-server-credentials.json");
 
+// Returns a valid OAuth2 client Promise or null
 async function authenticateWithTimeout(
   keyfilePath: string,
   SCOPES: string[],
@@ -40,6 +42,7 @@ async function authenticateWithTimeout(
     setTimeout(() => reject(new Error("Authentication timed out")), timeoutMs),
   );
 
+  // Returns a valid OAuth2 client Promise
   const authPromise = authenticate({
     keyfilePath,
     scopes: SCOPES,
@@ -48,6 +51,10 @@ async function authenticateWithTimeout(
   console.log('keyfilePath', keyfilePath)
 
   try {
+    // Uses Promise.race to run both authPromise and timeoutPromise concurrently
+    // Whichever promise settles first (either resolves or rejects) determines the outcome:
+    // If authPromise resolves, it returns an OAuth2 client
+    // If timeoutPromise rejects first (i.e., the authentication takes too long), the function catches the error, logs it, and returns null
     return await Promise.race([authPromise, timeoutPromise]);
   } catch (error) {
     console.error(error);
@@ -55,14 +62,19 @@ async function authenticateWithTimeout(
   }
 }
 
+// Returns a valid OAuth2 client or null if authentication takes too long
 async function authenticateAndSaveCredentials() {
   console.error("Launching auth flow…");
   console.error("Using credentials path:", credentialsPath);
 
+  //This file path needs to be from the server side
   const keyfilePath = path.join(CREDS_DIR, "gcp-oauth.keys.json");
   console.error("Using keyfile path:", keyfilePath);
 
+  // Returns a valid OAuth2 client or null if authentication takes too long
   const auth = await authenticateWithTimeout(keyfilePath, SCOPES);
+
+  // TODO: Check if this is correct. I dont think newAuth is required here.
   if (auth) {
     const newAuth = new google.auth.OAuth2();
     newAuth.setCredentials(auth.credentials);
@@ -72,9 +84,14 @@ async function authenticateAndSaveCredentials() {
     const { credentials } = await auth.refreshAccessToken();
     console.error("Received new credentials with scopes:", credentials.scope);
 
-    // Ensure directory exists before saving
+    // Ensure directory exists before saving, throws an error otherwise
+    // TODO: I dont think this is needed, 
+    // Since the file is on the root of the clients side
+    // The directory will always exist
     ensureCredsDirectory();
 
+    // TODO: Write file to client side
+    // Write the client's credentials to their directory
     fs.writeFileSync(credentialsPath, JSON.stringify(credentials, null, 2));
     console.error(
       "Credentials saved successfully with refresh token to:",
@@ -88,6 +105,7 @@ async function authenticateAndSaveCredentials() {
   }
 }
 
+// Returns a valid OAuth2 client or null
 // Try to load credentials without prompting for auth
 export async function loadCredentialsQuietly() {
   console.error("Attempting to load credentials from:", credentialsPath);
@@ -97,6 +115,9 @@ export async function loadCredentialsQuietly() {
     process.env.CLIENT_SECRET,
   );
 
+    // If no .gdrive-server-credentials,json file exists 
+    // Function returns null
+    // getValidCredentials will prompt for authenticateAndSaveCredentials
   if (!fs.existsSync(credentialsPath)) {
     console.error("No credentials file found");
     return null;
@@ -140,15 +161,18 @@ export async function loadCredentialsQuietly() {
   }
 }
 
+// Returns a valid OAuth2 client or null
 // Get valid credentials, prompting for auth if necessary
 export async function getValidCredentials(forceAuth = false) {
   if (!forceAuth) {
+    // Returns a valid OAuth2 client or null
     const quietAuth = await loadCredentialsQuietly();
     if (quietAuth) {
       return quietAuth;
     }
   }
 
+  // Returns a valid OAuth2 client or null
   return await authenticateAndSaveCredentials();
 }
 
