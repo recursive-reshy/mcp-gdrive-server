@@ -6,10 +6,10 @@
   "license": "ISC",
   "type": "module",
   "bin": {
-    "mcp-server-gdrive": "dist/index.js"
+    "mcp-server-gdrive": "build/index.js"
   },
   "files": [
-    "dist"
+    "build"
   ],
   "scripts": {
     "build": "tsc",
