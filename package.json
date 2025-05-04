@@ -12,11 +12,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && shx chmod +x dist/*.js",
-    "prepare": "npm run build",
-    "watch": "tsc --watch",
-    "auth": "node --env-file=.env dist/index.js auth",	
-    "start": "node --env-file=.env dist/index.js"
+    "build": "tsc",
+    "start": "node build/index.js",
+    "dev": "tsc --watch & node --watch build/index.js"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
