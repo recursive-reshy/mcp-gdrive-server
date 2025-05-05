@@ -14,13 +14,15 @@
   "scripts": {
     "build": "tsc",
     "start": "node build/index.js",
-    "dev": "tsc --watch & node --watch build/index.js"
+    "dev": "tsc --watch & node --watch build/index.js",
+    "test-exe": "npm run build && npx ."
   },
   "dependencies": {
-    "@google-cloud/local-auth": "^3.0.1",
-    "@modelcontextprotocol/sdk": "^1.10.1",
     "dotenv": "^16.5.0",
-    "googleapis": "^148.0.0"
+    "dayjs": "^1.11.13",
+    "@google-cloud/local-auth": "^3.0.1",
+    "googleapis": "^148.0.0",
+    "@modelcontextprotocol/sdk": "^1.10.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.1",
