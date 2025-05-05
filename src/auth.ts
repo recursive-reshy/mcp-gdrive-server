@@ -118,15 +118,13 @@ const loadCredentialsQuietly = async (): Promise< OAuth2Client | null > => {
 
     oauth2Client.setCredentials(savedCreds)
 
-    // const expiryDate = dayjs( savedCreds.expiry_date )
-    // const timeToExpiry = dayjs( savedCreds.expiry_date ).diff( dayjs(), 'minutes')
-
     console.log('Token expiry status:', {
       expiryDate: dayjs( savedCreds.expiry_date ).toISOString(),
       timeToExpiryInMinutes: dayjs( savedCreds.expiry_date ).diff( dayjs(), 'minutes'),
       hasRefreshToken: !!savedCreds.refresh_token,
     } )
 
+    // TODO: Need to check if refresh auth is working
     // If the token is within 5 minutes of expiry and has a refresh token, refresh the token
     if ( dayjs( savedCreds.expiry_date ).diff( dayjs(), 'minutes') < ( 5 * 60 * 1000 ) && savedCreds.refresh_token ) {
       console.log('Attempting to refresh token using refresh_token')
