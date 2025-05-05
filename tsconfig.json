@@ -1,5 +1,4 @@
-{
-  "compilerOptions": {
+{ "compilerOptions": {
     "target": "ES2022", // Target modern Node.js features
     "module": "NodeNext", // Use modern ES Modules
     "moduleResolution": "NodeNext",

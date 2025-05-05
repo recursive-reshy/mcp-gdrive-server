@@ -6,20 +6,23 @@
   "license": "ISC",
   "type": "module",
   "bin": {
-    "mcp-server-gdrive": "dist/index.js"
+    "mcp-server-gdrive": "build/index.js"
   },
   "files": [
-    "dist"
+    "build"
   ],
   "scripts": {
     "build": "tsc",
     "start": "node build/index.js",
-    "dev": "tsc --watch & node --watch build/index.js"
+    "dev": "tsc --watch & node --watch build/index.js",
+    "test-exe": "npm run build && npx ."
   },
   "dependencies": {
+    "dotenv": "^16.5.0",
+    "dayjs": "^1.11.13",
     "@google-cloud/local-auth": "^3.0.1",
-    "@modelcontextprotocol/sdk": "^1.10.1",
-    "googleapis": "^148.0.0"
+    "googleapis": "^148.0.0",
+    "@modelcontextprotocol/sdk": "^1.10.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.1",
