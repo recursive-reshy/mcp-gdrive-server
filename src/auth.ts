@@ -18,7 +18,7 @@ const CREDS_DIR =
   path.join( path.dirname( new URL(import.meta.url).pathname ), '../../../' )
 
 // Client auth tokens
-const credentialsPath = path.join( CREDS_DIR, '.gdrive-server-credentials.json' )
+const CREDENTIALS = path.join( CREDS_DIR, '.gdrive-server-credentials.json' )
 
 // Helper function to authenticate with a timeout
 const authenticateWithTimeout = async (
@@ -56,7 +56,7 @@ const authenticateWithTimeout = async (
 // Returns a valid OAuth2 client or null if authentication takes too long
 const authenticateAndSaveCredentials = async (): Promise< OAuth2Client | null > => {
   console.log('Launching auth flow...')
-  console.log(`Using credentials path: ${credentialsPath}`)
+  console.log(`Using credentials path: ${CREDENTIALS}`)
 
   //This file path needs to be from the server side
   const keyfilePath = path.join( CREDS_DIR, 'gcp-oauth.keys.json' )
@@ -75,13 +75,13 @@ const authenticateAndSaveCredentials = async (): Promise< OAuth2Client | null > 
     console.log(`Received new credentials with scopes: ${credentials.scope}`)
 
     // Write the client's credentials to their directory
-    console.log(`Using credentials path: ${credentialsPath}`)
+    console.log(`Using credentials path: ${CREDENTIALS}`)
     fs.writeFileSync(
       '.gdrive-server-credentials.json',
       JSON.stringify( credentials, null, 2 )
     )
 
-    console.log(`Credentials saved successfully with refresh token to: ${credentialsPath}`)
+    console.log(`Credentials saved successfully with refresh token to: ${CREDENTIALS}`)
 
     auth.setCredentials(credentials)
     return auth
@@ -93,7 +93,7 @@ const authenticateAndSaveCredentials = async (): Promise< OAuth2Client | null > 
 
 // Try to load credentials without prompting for auth
 const loadCredentialsQuietly = async (): Promise< OAuth2Client | null > => {
-  console.log(`Attempting to load credentials from: ${credentialsPath}`)
+  console.log(`Attempting to load credentials from: ${CREDENTIALS}`)
   // If no .gdrive-server-credentials.json file exists return null
   if ( !fs.existsSync('.gdrive-server-credentials.json') ) {
     console.error('No credentials file found')
