@@ -20,48 +20,36 @@ const CREDS_DIR =
 // Client auth tokens
 const credentialsPath = path.join( CREDS_DIR, '.gdrive-server-credentials.json' )
 
-// Ensure the credentials directory exists
-function ensureCredsDirectory() {
-  try {
-    fs.mkdirSync(CREDS_DIR, { recursive: true });
-    // The recursive: true option ensures that parent directories are CREATED if 
-    // they do not exist, and avoids errors if the directory already exists.
-    console.error(`Ensured credentials directory exists at: ${CREDS_DIR}`);
-  } catch (error) {
-    console.error(
-      `Failed to create credentials directory: ${CREDS_DIR}`,
-      error,
-    );
-    throw error;
-  }
-}
-
-async function authenticateWithTimeout(
+// Helper function to authenticate with a timeout
+const authenticateWithTimeout = async (
   keyfilePath: string,
-  SCOPES: string[],
+  scopes: string[],
   timeoutMs = 30000,
-): Promise<any | null> {
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error("Authentication timed out")), timeoutMs),
-  );
+): Promise< OAuth2Client | null > => {
 
-  console.log('Authenticating with timeout', keyfilePath)
+  // Typed as Promise<never> because it always rejects and never resolves.
+  // This typing ensures type safety when using Promise.race.
+  const timeoutPromise = new Promise< never >( ( _, reject ) =>
+    setTimeout( () => reject( new Error('Authentication timed out') ), timeoutMs ),
+  )
+
+  console.log( `Authenticating with timeout: ${keyfilePath}` )
 
   // Returns a valid OAuth2 client Promise
-  const authPromise = authenticate({
+  const authPromise = authenticate( {
     keyfilePath: 'gcp-oauth.keys.json',
-    scopes: SCOPES,
-  });
+    scopes,
+  } )
 
   try {
     // Uses Promise.race to run both authPromise and timeoutPromise concurrently
     // Whichever promise settles first (either resolves or rejects) determines the outcome:
     // If authPromise resolves, it returns an OAuth2 client
     // If timeoutPromise rejects first (i.e., the authentication takes too long), the function catches the error, logs it, and returns null
-    return await Promise.race([authPromise, timeoutPromise]);
+    return await Promise.race( [ authPromise, timeoutPromise ] )
   } catch (error) {
-    console.error('Authentication with timeout failed', error);
-    return null;
+    console.error( `Authentication with timeout failed: ${error}` )
+    return null
   }
 }
 
@@ -76,6 +64,11 @@ const authenticateAndSaveCredentials = async (): Promise< OAuth2Client | null > 
 
   // Returns a valid OAuth2 client or null if authentication takes too long
   const auth = await authenticateWithTimeout( keyfilePath, SCOPES )
+
+  if ( !auth ) {
+    console.error( 'Authentication failed' )
+    return null
+  }
 
   try {
     const { credentials } = await auth.refreshAccessToken()
@@ -118,20 +111,20 @@ const loadCredentialsQuietly = async (): Promise< OAuth2Client | null > => {
 
     oauth2Client.setCredentials(savedCreds)
 
+    const timeToExpiryInMinutes = dayjs( savedCreds.expiry_date ).diff( dayjs(), 'minutes' )
+
     console.log('Token expiry status:', {
-      expiryDate: dayjs( savedCreds.expiry_date ).toISOString(),
-      timeToExpiryInMinutes: dayjs( savedCreds.expiry_date ).diff( dayjs(), 'minutes'),
+      expiryDate: dayjs( savedCreds.expiry_date ).format('DD-MM-YY HH:mm:ss'),
+      timeToExpiryInMinutes: timeToExpiryInMinutes < 0 ? 'Expired' : timeToExpiryInMinutes,
       hasRefreshToken: !!savedCreds.refresh_token,
     } )
 
-    // TODO: Need to check if refresh auth is working
     // If the token is within 5 minutes of expiry and has a refresh token, refresh the token
     if ( dayjs( savedCreds.expiry_date ).diff( dayjs(), 'minutes') < ( 5 * 60 * 1000 ) && savedCreds.refresh_token ) {
       console.log('Attempting to refresh token using refresh_token')
       try {
         const response = await oauth2Client.refreshAccessToken()
         const newCreds = response.credentials
-        ensureCredsDirectory()
         fs.writeFileSync('.gdrive-server-credentials.json', JSON.stringify(newCreds, null, 2))
         oauth2Client.setCredentials(newCreds)
         console.log('Token refreshed and saved successfully')
@@ -148,23 +141,8 @@ const loadCredentialsQuietly = async (): Promise< OAuth2Client | null > => {
   }
 }
 
-// Returns a valid OAuth2 client or null
-// Get valid credentials, prompting for auth if necessary
-export async function getValidCredentials(forceAuth = false) {
-  if (!forceAuth) {
-    // Returns a valid OAuth2 client or null
-    const quietAuth = await loadCredentialsQuietly();
-    if (quietAuth) {
-      return quietAuth;
-    }
-  }
-
-  // Returns a valid OAuth2 client or null
-  return await authenticateAndSaveCredentials();
-}
-
 // Background refresh that never prompts for auth
-export function setupTokenRefresh() {
+const setupTokenRefresh = () => {
   console.error("Setting up automatic token refresh interval (45 minutes)");
   return setInterval(
     async () => {
@@ -188,4 +166,5 @@ export function setupTokenRefresh() {
 export { 
   authenticateAndSaveCredentials,
   loadCredentialsQuietly,
+  setupTokenRefresh,
 }
