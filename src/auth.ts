@@ -62,46 +62,41 @@ async function authenticateWithTimeout(
 }
 
 // Returns a valid OAuth2 client or null if authentication takes too long
-async function authenticateAndSaveCredentials() {
-  console.error("Launching auth flow…");
-  console.error("Using credentials path:", credentialsPath);
+const authenticateAndSaveCredentials = async () => {
+  console.log('Launching auth flow...')
+  console.log( 'Using credentials path:', credentialsPath )
 
   //This file path needs to be from the server side
-  const keyfilePath = path.join(CREDS_DIR, "gcp-oauth.keys.json");
-  console.error("Using keyfile path:", keyfilePath);
+  const keyfilePath = path.join( CREDS_DIR, 'gcp-oauth.keys.json' )
+  console.log( 'Using keyfile path:', keyfilePath )
 
   // Returns a valid OAuth2 client or null if authentication takes too long
-  const auth = await authenticateWithTimeout(keyfilePath, SCOPES);
-
-  // TODO: Check if this is correct. I dont think newAuth is required here.
-  if (auth) {
-    const newAuth = new google.auth.OAuth2();
-    newAuth.setCredentials(auth.credentials);
-  }
+  const auth = await authenticateWithTimeout( keyfilePath, SCOPES )
 
   try {
-    const { credentials } = await auth.refreshAccessToken();
-    console.error("Received new credentials with scopes:", credentials.scope);
+    const { credentials } = await auth.refreshAccessToken()
+    console.log( 'Received new credentials with scopes:', credentials.scope )
 
     // Ensure directory exists before saving, throws an error otherwise
     // TODO: I dont think this is needed, 
     // Since the file is on the root of the clients side
     // The directory will always exist
-    // ensureCredsDirectory();
+    // ensureCredsDirectory()
 
     // Write the client's credentials to their directory
-    console.error("Using credentials path:", credentialsPath);
-    fs.writeFileSync('.gdrive-server-credentials.json', JSON.stringify(credentials, null, 2));
+    console.log( 'Using credentials path:', credentialsPath )
+    fs.writeFileSync(
+      '.gdrive-server-credentials.json',
+      JSON.stringify( credentials, null, 2 )
+    )
 
-    console.error(
-      "Credentials saved successfully with refresh token to:",
-      credentialsPath,
-    );
-    auth.setCredentials(credentials);
-    return auth;
+    console.log( 'Credentials saved successfully with refresh token to:', credentialsPath )
+
+    auth.setCredentials(credentials)
+    return auth
   } catch (error) {
-    console.error("Error refreshing token during initial auth:", error);
-    return auth;
+    console.error('Error refreshing token during initial auth:', error)
+    return auth
   }
 }
 
@@ -198,3 +193,5 @@ export function setupTokenRefresh() {
     45 * 60 * 1000,
   );
 }
+
+export { authenticateAndSaveCredentials }
