@@ -1,12 +1,15 @@
-import { authenticate } from "@google-cloud/local-auth";
-import { google } from "googleapis";
-import fs from "fs";
-import path from "path";
+import fs from 'fs'
+import path from 'path'
+
+// Google
+import { authenticate } from '@google-cloud/local-auth'
+import { OAuth2Client } from 'google-auth-library'
+import { google } from 'googleapis'
 
 export const SCOPES = [
-  "https://www.googleapis.com/auth/drive.readonly",
-  "https://www.googleapis.com/auth/spreadsheets",
-];
+  'https://www.googleapis.com/auth/drive.readonly',
+  'https://www.googleapis.com/auth/spreadsheets',
+]
 
 // Get credentials directory from environment variable or use default
 const CREDS_DIR =
@@ -62,20 +65,20 @@ async function authenticateWithTimeout(
 }
 
 // Returns a valid OAuth2 client or null if authentication takes too long
-const authenticateAndSaveCredentials = async () => {
+const authenticateAndSaveCredentials = async (): Promise< OAuth2Client | null > => {
   console.log('Launching auth flow...')
-  console.log( 'Using credentials path:', credentialsPath )
+  console.log(`Using credentials path: ${credentialsPath}`)
 
   //This file path needs to be from the server side
   const keyfilePath = path.join( CREDS_DIR, 'gcp-oauth.keys.json' )
-  console.log( 'Using keyfile path:', keyfilePath )
+  console.log(`Using keyfile path: ${keyfilePath}`)
 
   // Returns a valid OAuth2 client or null if authentication takes too long
   const auth = await authenticateWithTimeout( keyfilePath, SCOPES )
 
   try {
     const { credentials } = await auth.refreshAccessToken()
-    console.log( 'Received new credentials with scopes:', credentials.scope )
+    console.log(`Received new credentials with scopes: ${credentials.scope}`)
 
     // Ensure directory exists before saving, throws an error otherwise
     // TODO: I dont think this is needed, 
@@ -84,76 +87,71 @@ const authenticateAndSaveCredentials = async () => {
     // ensureCredsDirectory()
 
     // Write the client's credentials to their directory
-    console.log( 'Using credentials path:', credentialsPath )
+    console.log(`Using credentials path: ${credentialsPath}`)
     fs.writeFileSync(
       '.gdrive-server-credentials.json',
       JSON.stringify( credentials, null, 2 )
     )
 
-    console.log( 'Credentials saved successfully with refresh token to:', credentialsPath )
+    console.log(`Credentials saved successfully with refresh token to: ${credentialsPath}`)
 
     auth.setCredentials(credentials)
     return auth
   } catch (error) {
-    console.error('Error refreshing token during initial auth:', error)
+    console.error(`Error refreshing token during initial auth: ${error}`)
     return auth
   }
 }
 
-// Returns a valid OAuth2 client or null
 // Try to load credentials without prompting for auth
-export async function loadCredentialsQuietly() {
-  console.error('Environment variables', CREDS_DIR, process.env.GDRIVE_CREDS_DIR, path.join(CREDS_DIR, ".gdrive-server-credentials.json"), path.join(path.dirname(new URL(import.meta.url).pathname), "../../../"))
-  console.error("Attempting to load credentials from:", credentialsPath);
-
+const loadCredentialsQuietly = async (): Promise< OAuth2Client | null > => {
+  console.log(`Attempting to load credentials from: ${credentialsPath}`)
   const oauth2Client = new google.auth.OAuth2(
     process.env.CLIENT_ID,
     process.env.CLIENT_SECRET,
-  );
+  )
 
-  // If no .gdrive-server-credentials,json file exists 
-  // Function returns null
-  // getValidCredentials will prompt for authenticateAndSaveCredentials
-  if (!fs.existsSync(credentialsPath)) {
-    console.error("No credentials file found");
-    return null;
+  // If no .gdrive-server-credentials.json file exists return null
+  if ( !fs.existsSync(credentialsPath) ) {
+    console.error('No credentials file found')
+    return null
   }
 
   try {
-    const savedCreds = JSON.parse(fs.readFileSync(credentialsPath, "utf-8"));
-    console.error("Loaded existing credentials with scopes:", savedCreds.scope);
-    oauth2Client.setCredentials(savedCreds);
+    const savedCreds = JSON.parse(fs.readFileSync(credentialsPath, 'utf-8'))
+    console.log(`Loaded existing credentials with scopes: ${savedCreds.scope}`)
+    oauth2Client.setCredentials(savedCreds)
 
-    const expiryDate = new Date(savedCreds.expiry_date);
-    const now = new Date();
-    const fiveMinutes = 5 * 60 * 1000;
-    const timeToExpiry = expiryDate.getTime() - now.getTime();
+    const expiryDate = new Date(savedCreds.expiry_date)
+    const now = new Date()
+    const fiveMinutes = 5 * 60 * 1000
+    const timeToExpiry = expiryDate.getTime() - now.getTime()
 
-    console.error("Token expiry status:", {
+    console.log('Token expiry status:', {
       expiryDate: expiryDate.toISOString(),
       timeToExpiryMinutes: Math.floor(timeToExpiry / (60 * 1000)),
       hasRefreshToken: !!savedCreds.refresh_token,
-    });
+    })
 
     if (timeToExpiry < fiveMinutes && savedCreds.refresh_token) {
-      console.error("Attempting to refresh token using refresh_token");
+      console.log('Attempting to refresh token using refresh_token')
       try {
-        const response = await oauth2Client.refreshAccessToken();
-        const newCreds = response.credentials;
-        ensureCredsDirectory();
-        fs.writeFileSync(credentialsPath, JSON.stringify(newCreds, null, 2));
-        oauth2Client.setCredentials(newCreds);
-        console.error("Token refreshed and saved successfully");
+        const response = await oauth2Client.refreshAccessToken()
+        const newCreds = response.credentials
+        ensureCredsDirectory()
+        fs.writeFileSync(credentialsPath, JSON.stringify(newCreds, null, 2))
+        oauth2Client.setCredentials(newCreds)
+        console.log('Token refreshed and saved successfully')
       } catch (error) {
-        console.error("Failed to refresh token:", error);
-        return null;
+        console.error(`Failed to refresh token: ${error}`)
+        return null
       }
     }
 
-    return oauth2Client;
+    return oauth2Client
   } catch (error) {
-    console.error("Error loading credentials:", error);
-    return null;
+    console.error(`Error loading credentials: ${error}`)
+    return null
   }
 }
 
@@ -194,4 +192,7 @@ export function setupTokenRefresh() {
   );
 }
 
-export { authenticateAndSaveCredentials }
+export { 
+  authenticateAndSaveCredentials,
+  loadCredentialsQuietly,
+}
