@@ -15,7 +15,7 @@
     "build": "tsc",
     "start": "node build/index.js",
     "dev": "tsc --watch & node --watch build/index.js",
-    "test-executable": "npm run build && npx ."
+    "test-exe": "npm run build && npx ."
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
