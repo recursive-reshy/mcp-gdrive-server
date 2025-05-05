@@ -19,7 +19,7 @@ const main = async () => {
     console.log('Authenticated')
 
     // Start sever
-    console.log('Starting server...', process.env.CLIENT_SECRET)
+    console.log('Starting server...')
     await Server.connect( new StdioServerTransport() )
     console.log('Server started')
   } catch (error) {
