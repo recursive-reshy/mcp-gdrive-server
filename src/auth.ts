@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import dayjs from 'dayjs'
 
 // Google
 import { authenticate } from '@google-cloud/local-auth'
@@ -80,12 +81,6 @@ const authenticateAndSaveCredentials = async (): Promise< OAuth2Client | null > 
     const { credentials } = await auth.refreshAccessToken()
     console.log(`Received new credentials with scopes: ${credentials.scope}`)
 
-    // Ensure directory exists before saving, throws an error otherwise
-    // TODO: I dont think this is needed, 
-    // Since the file is on the root of the clients side
-    // The directory will always exist
-    // ensureCredsDirectory()
-
     // Write the client's credentials to their directory
     console.log(`Using credentials path: ${credentialsPath}`)
     fs.writeFileSync(
@@ -98,7 +93,7 @@ const authenticateAndSaveCredentials = async (): Promise< OAuth2Client | null > 
     auth.setCredentials(credentials)
     return auth
   } catch (error) {
-    console.error(`Error refreshing token during initial auth: ${error}`)
+    console.error(`Unhandled error in authenticateAndSaveCredentials: ${error}`)
     return auth
   }
 }
@@ -120,21 +115,20 @@ const loadCredentialsQuietly = async (): Promise< OAuth2Client | null > => {
 
     const savedCreds = JSON.parse( fs.readFileSync( '.gdrive-server-credentials.json', 'utf-8' ) )
     console.log(`Loaded existing credentials with scopes: ${savedCreds.scope}`)
-    
+
     oauth2Client.setCredentials(savedCreds)
 
-    const expiryDate = new Date(savedCreds.expiry_date)
-    const now = new Date()
-    const fiveMinutes = 5 * 60 * 1000
-    const timeToExpiry = expiryDate.getTime() - now.getTime()
+    // const expiryDate = dayjs( savedCreds.expiry_date )
+    // const timeToExpiry = dayjs( savedCreds.expiry_date ).diff( dayjs(), 'minutes')
 
     console.log('Token expiry status:', {
-      expiryDate: expiryDate.toISOString(),
-      timeToExpiryMinutes: Math.floor(timeToExpiry / (60 * 1000)),
+      expiryDate: dayjs( savedCreds.expiry_date ).toISOString(),
+      timeToExpiryInMinutes: dayjs( savedCreds.expiry_date ).diff( dayjs(), 'minutes'),
       hasRefreshToken: !!savedCreds.refresh_token,
-    })
+    } )
 
-    if (timeToExpiry < fiveMinutes && savedCreds.refresh_token) {
+    // If the token is within 5 minutes of expiry and has a refresh token, refresh the token
+    if ( dayjs( savedCreds.expiry_date ).diff( dayjs(), 'minutes') < ( 5 * 60 * 1000 ) && savedCreds.refresh_token ) {
       console.log('Attempting to refresh token using refresh_token')
       try {
         const response = await oauth2Client.refreshAccessToken()
@@ -151,7 +145,7 @@ const loadCredentialsQuietly = async (): Promise< OAuth2Client | null > => {
 
     return oauth2Client
   } catch (error) {
-    console.error(`Error loading credentials: ${error}`)
+    console.error(`Unhandled error in loadCredentialsQuietly: ${error}`)
     return null
   }
 }
