@@ -14,10 +14,10 @@ export const SCOPES = [
 // Get credentials directory from environment variable or use default
 const CREDS_DIR =
   process.env.GDRIVE_CREDS_DIR ||
-  path.join(path.dirname(new URL(import.meta.url).pathname), "../../../");
+  path.join( path.dirname( new URL(import.meta.url).pathname ), '../../../' )
 
 // Client auth tokens
-const credentialsPath = path.join(CREDS_DIR, ".gdrive-server-credentials.json");
+const credentialsPath = path.join( CREDS_DIR, '.gdrive-server-credentials.json' )
 
 // Ensure the credentials directory exists
 function ensureCredsDirectory() {
@@ -106,20 +106,21 @@ const authenticateAndSaveCredentials = async (): Promise< OAuth2Client | null > 
 // Try to load credentials without prompting for auth
 const loadCredentialsQuietly = async (): Promise< OAuth2Client | null > => {
   console.log(`Attempting to load credentials from: ${credentialsPath}`)
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.CLIENT_ID,
-    process.env.CLIENT_SECRET,
-  )
-
   // If no .gdrive-server-credentials.json file exists return null
-  if ( !fs.existsSync(credentialsPath) ) {
+  if ( !fs.existsSync('.gdrive-server-credentials.json') ) {
     console.error('No credentials file found')
     return null
   }
 
   try {
-    const savedCreds = JSON.parse(fs.readFileSync(credentialsPath, 'utf-8'))
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.CLIENT_ID,
+      process.env.CLIENT_SECRET,
+    )
+
+    const savedCreds = JSON.parse( fs.readFileSync( '.gdrive-server-credentials.json', 'utf-8' ) )
     console.log(`Loaded existing credentials with scopes: ${savedCreds.scope}`)
+    
     oauth2Client.setCredentials(savedCreds)
 
     const expiryDate = new Date(savedCreds.expiry_date)
@@ -139,7 +140,7 @@ const loadCredentialsQuietly = async (): Promise< OAuth2Client | null > => {
         const response = await oauth2Client.refreshAccessToken()
         const newCreds = response.credentials
         ensureCredsDirectory()
-        fs.writeFileSync(credentialsPath, JSON.stringify(newCreds, null, 2))
+        fs.writeFileSync('.gdrive-server-credentials.json', JSON.stringify(newCreds, null, 2))
         oauth2Client.setCredentials(newCreds)
         console.log('Token refreshed and saved successfully')
       } catch (error) {
