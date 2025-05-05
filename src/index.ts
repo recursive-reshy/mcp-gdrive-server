@@ -13,6 +13,7 @@ const main = async () => {
     // GDrive authentication
     console.log('Authenticating...')
     const quietAuth = await loadCredentialsQuietly()
+    // If crendentials do not exist or are expired, authenticate and save credentials
     if ( !quietAuth ) {
       await authenticateAndSaveCredentials()
     }

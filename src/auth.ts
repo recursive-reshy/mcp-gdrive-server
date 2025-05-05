@@ -7,12 +7,15 @@ import { authenticate } from '@google-cloud/local-auth'
 import { OAuth2Client } from 'google-auth-library'
 import { google } from 'googleapis'
 
-export const SCOPES = [
+
+// TODO: This should probably be from the env file
+const SCOPES = [
   'https://www.googleapis.com/auth/drive.readonly',
   'https://www.googleapis.com/auth/spreadsheets',
 ]
 
-// Get credentials directory from environment variable or use default
+// Get credentials directory from environment variable if user wants to specify the path
+// Else use root directory of the project
 const CREDS_DIR =
   process.env.GDRIVE_CREDS_DIR ||
   path.join( path.dirname( new URL(import.meta.url).pathname ), '../../../' )
