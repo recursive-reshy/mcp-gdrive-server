@@ -3,7 +3,7 @@ import 'dotenv/config'
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
-import { authenticateAndSaveCredentials } from './auth.js'
+import { authenticateAndSaveCredentials, loadCredentialsQuietly } from './auth.js'
 
 import Server from "./server.js"
 
@@ -12,7 +12,10 @@ const main = async () => {
   try {
     // GDrive authentication
     console.log('Authenticating...')
-    await authenticateAndSaveCredentials()
+    const quietAuth = await loadCredentialsQuietly()
+    if ( !quietAuth ) {
+      await authenticateAndSaveCredentials()
+    }
     console.log('Authenticated')
 
     // Start sever
