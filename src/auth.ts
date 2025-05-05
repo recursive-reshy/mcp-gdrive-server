@@ -14,21 +14,8 @@ const SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets',
 ]
 
-// Get credentials directory from environment variable if user wants to specify the path
-// Else use root directory of the project
-const CREDS_DIR =
-  process.env.GDRIVE_CREDS_DIR ||
-  path.join( path.dirname( new URL(import.meta.url).pathname ), '../../../' )
-
-// Client auth tokens
-const CREDENTIALS = path.join( CREDS_DIR, '.gdrive-server-credentials.json' )
-
 // Helper function to authenticate with a timeout
-const authenticateWithTimeout = async (
-  keyfilePath: string,
-  scopes: string[],
-  timeoutMs = 30000,
-): Promise< OAuth2Client | null > => {
+const authenticateWithTimeout = async ( timeoutMs = 30000 ): Promise< OAuth2Client | null > => {
 
   // Typed as Promise<never> because it always rejects and never resolves.
   // This typing ensures type safety when using Promise.race.
@@ -36,12 +23,12 @@ const authenticateWithTimeout = async (
     setTimeout( () => reject( new Error('Authentication timed out') ), timeoutMs ),
   )
 
-  console.log( `Authenticating with timeout: ${keyfilePath}` )
+  console.log('Authenticating with timeout')
 
   // Returns a valid OAuth2 client Promise
   const authPromise = authenticate( {
     keyfilePath: 'gcp-oauth.keys.json',
-    scopes,
+    scopes: SCOPES,
   } )
 
   try {
@@ -59,14 +46,16 @@ const authenticateWithTimeout = async (
 // Returns a valid OAuth2 client or null if authentication takes too long
 const authenticateAndSaveCredentials = async (): Promise< OAuth2Client | null > => {
   console.log('Launching auth flow...')
-  console.log(`Using credentials path: ${CREDENTIALS}`)
+  console.log(`Attempting to load credentials from gcp-oauth.keys.json`)
 
-  //This file path needs to be from the server side
-  const keyfilePath = path.join( CREDS_DIR, 'gcp-oauth.keys.json' )
-  console.log(`Using keyfile path: ${keyfilePath}`)
+  // If no gcp-oauth.keys.json file exists return null
+  if ( !fs.existsSync('gcp-oauth.keys.json') ) {
+    console.error('No OAuth keys file found')
+    return null
+  }
 
   // Returns a valid OAuth2 client or null if authentication takes too long
-  const auth = await authenticateWithTimeout( keyfilePath, SCOPES )
+  const auth = await authenticateWithTimeout()
 
   if ( !auth ) {
     console.error( 'Authentication failed' )
@@ -78,13 +67,12 @@ const authenticateAndSaveCredentials = async (): Promise< OAuth2Client | null > 
     console.log(`Received new credentials with scopes: ${credentials.scope}`)
 
     // Write the client's credentials to their directory
-    console.log(`Using credentials path: ${CREDENTIALS}`)
     fs.writeFileSync(
       '.gdrive-server-credentials.json',
       JSON.stringify( credentials, null, 2 )
     )
 
-    console.log(`Credentials saved successfully with refresh token to: ${CREDENTIALS}`)
+    console.log('Credentials saved successfully with refresh token to: .gdrive-server-credentials.json')
 
     auth.setCredentials(credentials)
     return auth
@@ -96,7 +84,7 @@ const authenticateAndSaveCredentials = async (): Promise< OAuth2Client | null > 
 
 // Try to load credentials without prompting for auth
 const loadCredentialsQuietly = async (): Promise< OAuth2Client | null > => {
-  console.log(`Attempting to load credentials from: ${CREDENTIALS}`)
+  console.log('Attempting to load credentials from .gdrive-server-credentials.json')
   // If no .gdrive-server-credentials.json file exists return null
   if ( !fs.existsSync('.gdrive-server-credentials.json') ) {
     console.error('No credentials file found')
