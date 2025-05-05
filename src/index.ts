@@ -1,12 +1,21 @@
 #!/usr/bin/env node
 import 'dotenv/config'
+
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+
+import { authenticateAndSaveCredentials } from './auth.js'
 
 import Server from "./server.js"
 
 const main = async () => {
 
   try {
+    // GDrive authentication
+    console.log('Authenticating...')
+    await authenticateAndSaveCredentials()
+    console.log('Authenticated')
+
+    // Start sever
     console.log('Starting server...', process.env.CLIENT_SECRET)
     await Server.connect( new StdioServerTransport() )
     console.log('Server started')
