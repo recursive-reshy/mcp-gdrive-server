@@ -22,7 +22,7 @@ const authenticateWithTimeout = async ( timeoutMs = 30000 ): Promise< OAuth2Clie
     setTimeout( () => reject( new Error('Authentication timed out') ), timeoutMs ),
   )
 
-  console.log('Authenticating with timeout')
+  console.error('Authenticating with timeout')
 
   // Returns a valid OAuth2 client Promise
   const authPromise = authenticate( {
@@ -45,7 +45,7 @@ const authenticateWithTimeout = async ( timeoutMs = 30000 ): Promise< OAuth2Clie
 // Returns a valid OAuth2 client or null if authentication takes too long
 const authenticateAndSaveCredentials = async (): Promise< OAuth2Client | null > => {
   console.log('Launching auth flow...')
-  console.log(`Attempting to load credentials from gcp-oauth.keys.json`)
+  console.error('Attempting to load credentials from gcp-oauth.keys.json')
 
   // If no gcp-oauth.keys.json file exists return null
   if ( !fs.existsSync('gcp-oauth.keys.json') ) {
@@ -132,29 +132,29 @@ const loadCredentialsQuietly = async (): Promise< OAuth2Client | null > => {
 }
 
 // Background refresh that never prompts for auth
-const setupTokenRefresh = () => {
-  console.error("Setting up automatic token refresh interval (45 minutes)");
+const refreshToken = () => {
+  console.log('Setting up automatic token refresh interval (45 minutes)')
   return setInterval(
     async () => {
       try {
-        console.error("Running scheduled token refresh check");
-        const auth = await loadCredentialsQuietly();
+        console.error('Running scheduled token refresh check')
+        const auth = await loadCredentialsQuietly()
         if (auth) {
-          google.options({ auth });
-          console.error("Completed scheduled token refresh");
+          google.options( { auth } )
+          console.error('Completed scheduled token refresh')
         } else {
-          console.error("Skipping token refresh - no valid credentials");
+          console.error('Skipping token refresh - no valid credentials')
         }
       } catch (error) {
-        console.error("Error in automatic token refresh:", error);
+        console.error(`Unhandled error in refreshToken: ${error}`)
       }
     },
-    45 * 60 * 1000,
-  );
+    45 * 60 * 1000, // TODO: This should probably be from the env file
+  )
 }
 
 export { 
   authenticateAndSaveCredentials,
   loadCredentialsQuietly,
-  setupTokenRefresh,
+  refreshToken,
 }
