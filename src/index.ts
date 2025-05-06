@@ -3,7 +3,7 @@ import 'dotenv/config'
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
-import { authenticateAndSaveCredentials, loadCredentialsQuietly } from './auth.js'
+import { authenticateAndSaveCredentials, loadCredentialsQuietly, refreshToken } from './auth.js'
 
 import Server from "./server.js"
 
@@ -22,6 +22,9 @@ const main = async () => {
     // Start sever
     console.log('Starting server...')
     await Server.connect( new StdioServerTransport() )
+
+    // Periodically refresh the token
+    refreshToken()
     console.log('Server started')
   } catch (error) {
     console.error(`Unhandled error in main: ${error}`)
