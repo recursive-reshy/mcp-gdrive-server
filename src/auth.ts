@@ -115,7 +115,7 @@ const loadCredentialsQuietly = async (): Promise< OAuth2Client | null > => {
       try {
         const response = await oauth2Client.refreshAccessToken()
         const newCreds = response.credentials
-        fs.writeFileSync('.gdrive-server-credentials.json', JSON.stringify(newCreds, null, 2))
+        fs.writeFileSync( '.gdrive-server-credentials.json', JSON.stringify( newCreds, null, 2 ) )
         oauth2Client.setCredentials(newCreds)
         console.log('Token refreshed and saved successfully')
       } catch (error) {
