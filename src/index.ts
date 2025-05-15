@@ -3,9 +3,9 @@ import 'dotenv/config'
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
-import { authenticateAndSaveCredentials, loadCredentialsQuietly } from './auth.js'
+import { authenticateAndSaveCredentials, loadCredentialsQuietly, refreshToken } from './auth.js'
 
-import Server from "./server.js"
+import McpServer from './mcpServer.js'
 
 const main = async () => {
 
@@ -20,9 +20,12 @@ const main = async () => {
     console.log('Authenticated')
 
     // Start sever
-    console.log('Starting server...')
-    await Server.connect( new StdioServerTransport() )
-    console.log('Server started')
+    console.log('Starting MCP server...')
+    await McpServer.connect( new StdioServerTransport() )
+
+    // Periodically refresh the token
+    refreshToken()
+    console.log('MCP server started')
   } catch (error) {
     console.error(`Unhandled error in main: ${error}`)
     process.exit(1)
